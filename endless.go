@@ -72,10 +72,12 @@ type endlessServer struct {
 }
 
 /*
-NewServer returns an intialized endlessServer Object. Calling Serve on it will
+New returns an intialized endlessServer Object. Calling Serve on it will
 actually "start" the server.
 */
-func NewServer(addr string, handler http.Handler) (srv *endlessServer) {
+func New(server http.Server) (srv *endlessServer) {
+	addr := server.Addr
+
 	runningServerReg.Lock()
 	defer runningServerReg.Unlock()
 	if !flag.Parsed() {
@@ -114,16 +116,28 @@ func NewServer(addr string, handler http.Handler) (srv *endlessServer) {
 		state: STATE_INIT,
 	}
 
-	srv.Server.Addr = addr
-	srv.Server.ReadTimeout = DefaultReadTimeOut
-	srv.Server.WriteTimeout = DefaultWriteTimeOut
-	srv.Server.MaxHeaderBytes = DefaultMaxHeaderBytes
-	srv.Server.Handler = handler
+	srv.Server = server
 
 	runningServersOrder = append(runningServersOrder, addr)
 	runningServers[addr] = srv
 
 	return
+}
+
+/*
+NewServer returns an intialized endlessServer Object. Calling Serve on it will
+actually "start" the server.
+*/
+func NewServer(addr string, handler http.Handler) *endlessServer {
+	var srv http.Server
+
+	srv.Addr = addr
+	srv.ReadTimeout = DefaultReadTimeOut
+	srv.WriteTimeout = DefaultWriteTimeOut
+	srv.MaxHeaderBytes = DefaultMaxHeaderBytes
+	srv.Handler = handler
+
+	return New(srv)
 }
 
 /*
